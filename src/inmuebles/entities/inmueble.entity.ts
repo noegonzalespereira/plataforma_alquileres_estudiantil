@@ -4,7 +4,7 @@ import { Servicio } from '../../servicios/entities/servicio.entity';
 import { FotoInmueble } from './foto-inmueble.entity';
 import { Mensaje } from '../../mensaje/entities/mensaje.entity';
 import { Contrato } from '../../contrato/entities/contrato.entity';
-
+import { Resena } from '../../resenas/entities/resena.entity';
 @Entity('inmueble')
 export class Inmueble {
   @PrimaryGeneratedColumn()
@@ -48,7 +48,7 @@ export class Inmueble {
   @JoinColumn({ name: 'id_propietario' })
   propietario: Usuario;
 
-  @OneToMany(() => FotoInmueble, (foto) => foto.inmueble)
+  @OneToMany(() => FotoInmueble, (foto) => foto.inmueble, { cascade: true, eager: true })
   fotos: FotoInmueble[];
 
   // Tabla pivote Inmueble <-> Servicio
@@ -65,4 +65,6 @@ export class Inmueble {
 
   @OneToMany(() => Contrato, (contrato) => contrato.inmueble)
   contratos: Contrato[];
+  @OneToMany(() => Resena, (resena) => resena.inmueble)
+  resenas: Resena[];
 }

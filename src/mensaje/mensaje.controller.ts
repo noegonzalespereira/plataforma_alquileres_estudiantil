@@ -1,34 +1,41 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Patch, ParseIntPipe } from '@nestjs/common';
 import { MensajeService } from './mensaje.service';
 import { CreateMensajeDto } from './dto/create-mensaje.dto';
-import { UpdateMensajeDto } from './dto/update-mensaje.dto';
+import { AuthGuard } from '@nestjs/passport';
 
-@Controller('mensaje')
+@UseGuards(AuthGuard('jwt')) // Todo el controlador protegido
+@Controller('mensajes')
 export class MensajeController {
   constructor(private readonly mensajeService: MensajeService) {}
 
+  // 1. ENVIAR MENSAJE
   @Post()
-  create(@Body() createMensajeDto: CreateMensajeDto) {
-    return this.mensajeService.create(createMensajeDto);
+  create(@Request() req, @Body() createMensajeDto: CreateMensajeDto) {
+    // req.user.userId viene del Token (Estrategia JWT)
+    return this.mensajeService.create(req.user.userId, createMensajeDto);
   }
 
-  @Get()
-  findAll() {
-    return this.mensajeService.findAll();
+  // 2. VER UN CHAT ESPECÍFICO
+  // Ejemplo: /mensajes/chat/con/5/inmueble/20
+  // (Ver chat con el usuario ID 5 sobre el Inmueble 20)
+  @Get('chat/con/:idOtroUsuario/inmueble/:idInmueble')
+  getConversation(
+    @Request() req,
+    @Param('idOtroUsuario', ParseIntPipe) idOtroUsuario: number,
+    @Param('idInmueble', ParseIntPipe) idInmueble: number
+  ) {
+    return this.mensajeService.getConversation(req.user.userId, idOtroUsuario, idInmueble);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.mensajeService.findOne(+id);
+  // 3. VER TODOS MIS MENSAJES (Bandeja de entrada general)
+  @Get('mis-mensajes')
+  getMyMessages(@Request() req) {
+    return this.mensajeService.getMyMessages(req.user.userId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMensajeDto: UpdateMensajeDto) {
-    return this.mensajeService.update(+id, updateMensajeDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.mensajeService.remove(+id);
+  // 4. MARCAR COMO LEÍDO
+  @Patch(':id/leer')
+  markAsRead(@Param('id', ParseIntPipe) id: number) {
+    return this.mensajeService.markAsRead(id);
   }
 }

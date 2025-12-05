@@ -1,34 +1,47 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { ContratoService } from './contrato.service';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request, ParseIntPipe } from '@nestjs/common';
+import { ContratosService } from './contrato.service';
 import { CreateContratoDto } from './dto/create-contrato.dto';
-import { UpdateContratoDto } from './dto/update-contrato.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
-@Controller('contrato')
-export class ContratoController {
-  constructor(private readonly contratoService: ContratoService) {}
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Controller('contratos')
+export class ContratosController {
+  constructor(private readonly contratosService: ContratosService) {}
 
+  // 1. CREAR CONTRATO: Solo el Propietario puede registrarlo
+  @Roles('propietario', 'admin') // Admin también por si acaso
   @Post()
-  create(@Body() createContratoDto: CreateContratoDto) {
-    return this.contratoService.create(createContratoDto);
+  create(@Request() req, @Body() createContratoDto: CreateContratoDto) {
+    // req.user.userId es el ID del Propietario logueado
+    return this.contratosService.create(req.user.userId, createContratoDto);
   }
 
-  @Get()
-  findAll() {
-    return this.contratoService.findAll();
+  // 2. VER MIS CONTRATOS: Estudiantes ven los suyos, dueños los suyos
+  @Get('mis-contratos')
+  findMyContracts(@Request() req) {
+    // Pasamos el usuario completo (id y rol) para saber qué buscar
+    return this.contratosService.findMyContracts(req.user);
   }
 
+  // 3. DETALLE CONTRATO
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.contratoService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.contratosService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateContratoDto: UpdateContratoDto) {
-    return this.contratoService.update(+id, updateContratoDto);
+  // 4. FINALIZAR CONTRATO
+  @Roles('propietario', 'admin')
+  @Patch(':id/finalizar')
+  finalizar(@Request() req, @Param('id', ParseIntPipe) id: number) {
+    return this.contratosService.finalizarContrato(id, req.user.userId);
   }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.contratoService.remove(+id);
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('admin/todos')
+  findAllAdmin() {
+    // Necesitamos crear este método en el servicio, o usar findMyContracts modificado
+    return this.contratosService.findAllAdmin(); 
   }
 }

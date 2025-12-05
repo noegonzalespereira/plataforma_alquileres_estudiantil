@@ -1,6 +1,8 @@
 import { IsString, IsNumber, IsEnum, IsArray, IsOptional, IsInt } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateInmuebleDto {
+  @Type(() => Number)
   @IsInt()
   idPropietario: number; // El ID del dueño (Usuario)
 
@@ -13,6 +15,7 @@ export class CreateInmuebleDto {
   @IsEnum(['cuarto', 'monoambiente', 'departamento'])
   tipo: string;
 
+  @Type(() => Number)
   @IsNumber()
   precio: number;
 
@@ -22,11 +25,11 @@ export class CreateInmuebleDto {
   @IsString()
   zona: string;
 
+  @IsOptional()
   @IsArray()
-  @IsInt({ each: true }) // Valida que sea un array de números [1, 3, 5]
-  serviciosIds: number[]; // IDs de los servicios (luz, agua...)
+  @Type(() => Number)
+  @IsInt({ each: true })
+  serviciosIds: number[];
 
-  @IsArray()
-  @IsString({ each: true }) // Valida array de textos
-  fotosUrls: string[]; // ["url1.jpg", "url2.jpg"]
+  
 }

@@ -9,6 +9,8 @@ import { InmueblesModule } from './inmuebles/inmuebles.module';
 import { ServiciosModule } from './servicios/servicios.module';
 import { MensajeModule } from './mensaje/mensaje.module';
 import { ContratoModule } from './contrato/contrato.module';
+import { ResenasModule } from './resenas/resenas.module';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -25,7 +27,7 @@ import { ContratoModule } from './contrato/contrato.module';
       autoLoadEntities: true,
       synchronize: true,
     }),
-    UsuariosModule, AuthModule, InmueblesModule, ServiciosModule, MensajeModule, ContratoModule
+    UsuariosModule, AuthModule, InmueblesModule, ServiciosModule, MensajeModule, ContratoModule, ResenasModule, ReportesModule
   ],
   controllers: [],
   providers: [],

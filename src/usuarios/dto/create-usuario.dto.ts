@@ -21,6 +21,6 @@ export class CreateUsuarioDto {
   @IsOptional()
   telefono?: string;
 
-  @IsEnum(['estudiante', 'propietario'])
+  @IsEnum(['estudiante', 'propietario','admin'])
   rol: string;
 }

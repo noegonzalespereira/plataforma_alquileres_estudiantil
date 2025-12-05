@@ -25,27 +25,25 @@ export class InmueblesService {
   ) {}
 
   // 1. CREAR (Solo Admin)
-  async create(dto: CreateInmuebleDto) {
+  async create(dto: CreateInmuebleDto,fotosPaths: string[]) {
     // A. Buscar al dueño
     const propietario = await this.usuarioRepo.findOneBy({ id: dto.idPropietario });
     if (!propietario) throw new NotFoundException('Propietario no encontrado');
 
     // B. Buscar los servicios (Luz, Agua, etc.)
     // Usamos ByIds para buscar varios a la vez
-    const servicios: Servicio[] = []; // <--- Le decimos que es un array de Servicio
-    if (dto.serviciosIds.length > 0) {
-       // Nota: En TypeORM moderno se usa findBy con In, o query builder. 
-       // Simplificamos iterando o usando query builder si son muchos.
+    const servicios: Servicio[] = [];
+    if (dto.serviciosIds && dto.serviciosIds.length > 0) { // Validamos que exista
        for (const sId of dto.serviciosIds) {
           const s = await this.servicioRepo.findOneBy({ id: sId });
           if (s) servicios.push(s);
        }
     }
 
-    // C. Preparar las fotos
-    const fotosEntidades = dto.fotosUrls.map(url => {
+    // C. Preparar las fotos USANDO LOS PATHS LOCALES
+    const fotosEntidades = fotosPaths.map(path => {
       const foto = new FotoInmueble();
-      foto.url = url;
+      foto.url = path; // Guardamos "uploads/123123-foto.jpg"
       return foto;
     });
 
@@ -106,5 +104,44 @@ export class InmueblesService {
       where: { id },
       relations: ['fotos', 'servicios', 'propietario', 'contratos']
     });
+  }
+  // 5. ACTUALIZAR DATOS + FOTOS
+  async update(id: number, updateInmuebleDto: any, nuevasFotosPaths: string[] = []) { 
+    // Buscamos el inmueble Y sus fotos actuales
+    const inmueble = await this.inmuebleRepo.findOne({
+      where: { id },
+      relations: ['fotos'] 
+    });
+    
+    if (!inmueble) {
+      throw new NotFoundException(`Inmueble #${id} no encontrado`);
+    }
+
+    // 1. Actualizar datos de texto (título, precio, etc.)
+    this.inmuebleRepo.merge(inmueble, updateInmuebleDto);
+
+    // 2. Si hay fotos nuevas, las creamos y las agregamos a la lista existente
+    if (nuevasFotosPaths.length > 0) {
+      const nuevasEntidades = nuevasFotosPaths.map(path => {
+        const foto = new FotoInmueble();
+        foto.url = path;
+        return foto;
+      });
+      // Sumamos las viejas + las nuevas
+      inmueble.fotos = [...inmueble.fotos, ...nuevasEntidades];
+    }
+
+    return await this.inmuebleRepo.save(inmueble);
+  }
+
+  // 6. ELIMINAR INMUEBLE
+  async remove(id: number) {
+    const inmueble = await this.inmuebleRepo.findOneBy({ id });
+    
+    if (!inmueble) {
+      throw new NotFoundException(`Inmueble #${id} no encontrado`);
+    }
+
+    return await this.inmuebleRepo.remove(inmueble);
   }
 }
