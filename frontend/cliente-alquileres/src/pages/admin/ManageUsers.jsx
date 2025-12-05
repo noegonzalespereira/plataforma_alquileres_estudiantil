@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Table, Button, Badge, Card, Spinner, InputGroup, Form, Row, Col } from 'react-bootstrap';
+import { Container, Table, Button, Badge, Card, Spinner, InputGroup, Form, Row, Col, Modal } from 'react-bootstrap';
 import { 
   PersonLinesFill, 
   TrashFill, 
@@ -7,15 +7,26 @@ import {
   FunnelFill,
   PersonBadge,
   HouseDoor,
-  ShieldLock
+  ShieldLock,
+  PencilSquare,
+  PersonPlusFill
 } from 'react-bootstrap-icons';
 import api from '../../api/axiosConfig';
 
 const ManageUsers = () => {
+  // --- ESTADOS ---
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('todos');
+
+  // Estados del Modal (Crear/Editar)
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentId, setCurrentId] = useState(null);
+  const [formData, setFormData] = useState({
+    nombre: '', apellido: '', ci: '', email: '', password: '', telefono: '', rol: 'estudiante'
+  });
 
   // --- PALETA DE COLORES ---
   const colors = {
@@ -41,11 +52,59 @@ const ManageUsers = () => {
     }
   };
 
+  // --- ACCIONES CRUD ---
+
+  // 1. ABRIR MODAL CREAR
+  const handleOpenCreate = () => {
+    setIsEditing(false);
+    setFormData({ nombre: '', apellido: '', ci: '', email: '', password: '', telefono: '', rol: 'propietario' });
+    setShowModal(true);
+  };
+
+  // 2. ABRIR MODAL EDITAR
+  const handleOpenEdit = (user) => {
+    setIsEditing(true);
+    setCurrentId(user.id);
+    setFormData({
+      nombre: user.nombre,
+      apellido: user.apellido,
+      ci: user.ci,
+      email: user.email,
+      password: '', // Dejar vacío si no se cambia
+      telefono: user.telefono || '',
+      rol: user.rol
+    });
+    setShowModal(true);
+  };
+
+  // 3. GUARDAR (POST / PATCH)
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = { ...formData };
+      if (isEditing && !payload.password) delete payload.password; // No enviar password vacío al editar
+
+      if (isEditing) {
+        await api.patch(`/usuarios/${currentId}`, payload);
+        alert('Usuario actualizado correctamente');
+      } else {
+        await api.post('/usuarios', payload);
+        alert('Usuario creado correctamente');
+      }
+      setShowModal(false);
+      fetchUsers();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || 'Error al guardar usuario');
+    }
+  };
+
+  // 4. ELIMINAR
   const handleDelete = async (id) => {
     if (!window.confirm("⚠️ ¿Seguro que quieres bloquear/eliminar a este usuario?")) return;
     try {
       await api.delete(`/usuarios/${id}`);
-      fetchUsers(); // Recargar lista
+      fetchUsers(); 
       alert('Usuario desactivado correctamente.');
     } catch (error) {
       alert('Error al eliminar usuario.');
@@ -61,7 +120,6 @@ const ManageUsers = () => {
     return matchesSearch && matchesRole;
   });
 
-  // Icono según rol
   const getRoleBadge = (rol) => {
     switch(rol) {
       case 'admin': return <Badge bg="dark"><ShieldLock className="me-1"/> Admin</Badge>;
@@ -84,10 +142,15 @@ const ManageUsers = () => {
             </h2>
             <small className="text-muted">Gestiona el acceso a la plataforma</small>
           </div>
-          <div className="text-end">
-            <h4 className="fw-bold m-0 text-secondary">{users.length}</h4>
-            <small>Total</small>
-          </div>
+          
+          {/* BOTÓN NUEVO USUARIO */}
+          <Button 
+            onClick={handleOpenCreate}
+            style={{ backgroundColor: colors.coral, border: 'none' }}
+            className="d-flex align-items-center fw-bold"
+          >
+            <PersonPlusFill className="me-2"/> Nuevo Usuario
+          </Button>
         </div>
 
         {/* BARRA DE FILTROS */}
@@ -156,16 +219,29 @@ const ManageUsers = () => {
                       )}
                     </td>
                     <td className="text-center">
-                      {u.rol !== 'admin' && ( // No dejar que el admin se borre a sí mismo
+                      <div className="d-flex gap-2 justify-content-center">
+                        {/* BOTÓN EDITAR */}
                         <Button 
-                          variant="outline-danger" 
+                          variant="outline-warning" 
                           size="sm" 
-                          onClick={() => handleDelete(u.id)}
-                          title="Desactivar Usuario"
+                          onClick={() => handleOpenEdit(u)}
+                          title="Editar Usuario"
                         >
-                          <TrashFill />
+                          <PencilSquare />
                         </Button>
-                      )}
+
+                        {/* BOTÓN ELIMINAR */}
+                        {u.rol !== 'admin' && ( 
+                          <Button 
+                            variant="outline-danger" 
+                            size="sm" 
+                            onClick={() => handleDelete(u.id)}
+                            title="Desactivar Usuario"
+                          >
+                            <TrashFill />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -181,6 +257,77 @@ const ManageUsers = () => {
           </Card.Body>
         </Card>
       </Container>
+
+      {/* --- MODAL CREAR / EDITAR --- */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+        <Modal.Header closeButton className="bg-light">
+          <Modal.Title>{isEditing ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSave}>
+          <Modal.Body>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Nombre</Form.Label>
+                  <Form.Control required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Apellido</Form.Label>
+                  <Form.Control required value={formData.apellido} onChange={e => setFormData({...formData, apellido: e.target.value})} />
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Cédula de Identidad (CI)</Form.Label>
+              <Form.Control required value={formData.ci} onChange={e => setFormData({...formData, ci: e.target.value})} />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Email</Form.Label>
+              <Form.Control type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Contraseña {isEditing && <small className="text-muted">(Dejar vacío para mantener)</small>}</Form.Label>
+              <Form.Control 
+                type="password" 
+                required={!isEditing} 
+                value={formData.password} 
+                onChange={e => setFormData({...formData, password: e.target.value})} 
+              />
+            </Form.Group>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Teléfono</Form.Label>
+                  <Form.Control value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})} />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Rol</Form.Label>
+                  <Form.Select value={formData.rol} onChange={e => setFormData({...formData, rol: e.target.value})}>
+                    <option value="estudiante">Estudiante</option>
+                    <option value="propietario">Propietario</option>
+                    <option value="admin">Administrador</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>Cancelar</Button>
+            <Button type="submit" style={{ backgroundColor: colors.purpleDark, border: 'none' }}>
+              {isEditing ? 'Guardar Cambios' : 'Registrar Usuario'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
     </Container>
   );
 };
