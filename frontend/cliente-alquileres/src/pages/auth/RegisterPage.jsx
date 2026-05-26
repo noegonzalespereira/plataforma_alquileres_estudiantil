@@ -122,6 +122,16 @@ const RegisterPage = () => {
                         onChange={handleChange}
                         id="rol-prop"
                       />
+                      <Form.Check 
+                        type="radio"
+                        label="Administrador"
+                        name="rol"
+                        value="admin"
+                        checked={formData.rol === 'admin'}
+                        onChange={handleChange}
+                        id="rol-admin"
+                      />
+                      
                     </div>
                     <Form.Text className="text-muted">
                       {formData.rol === 'estudiante' 

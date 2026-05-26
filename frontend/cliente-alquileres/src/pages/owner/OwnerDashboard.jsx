@@ -51,7 +51,7 @@ const OwnerDashboard = () => {
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
             <h2 className="fw-bold mb-0" style={{ color: colors.purpleDark }}>
-              <Building className="me-2" /> Mis Inmuebles
+              <Building className="me-2" /> Mis inmuebles
             </h2>
             <small className="text-muted">Bienvenido, {user?.nombre}</small>
           </div>

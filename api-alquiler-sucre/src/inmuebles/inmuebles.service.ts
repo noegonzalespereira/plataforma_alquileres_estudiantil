@@ -41,6 +41,7 @@ export class InmueblesService {
     }
 
     // C. Preparar las fotos USANDO LOS PATHS LOCALES
+    const paths = fotosPaths || [];
     const fotosEntidades = fotosPaths.map(path => {
       const foto = new FotoInmueble();
       foto.url = path; // Guardamos "uploads/123123-foto.jpg"

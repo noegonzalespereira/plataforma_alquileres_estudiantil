@@ -22,15 +22,17 @@ const OwnerLayout = () => {
               <Nav.Link as={Link} to="/owner/dashboard" className="d-flex align-items-center gap-2">
                 <Building /> Mis Inmuebles
               </Nav.Link>
-              <Nav.Link as={Link} to="/owner/create-contract" className="d-flex align-items-center gap-2">
-                <FileEarmarkPlus /> Nuevo Contrato
-              </Nav.Link>
+            <Nav.Link as={Link} to="/owner/properties">
+                    <HouseDoorFill /> Mis publicaciones
+                </Nav.Link>
               <Nav.Link as={Link} to="/owner/chat" className="d-flex align-items-center gap-2">
                 <ChatQuote /> Mensajes
               </Nav.Link>
-              <Nav.Link as={Link} to="/owner/properties">
-                    <HouseDoorFill /> Mis Avisos
-                </Nav.Link>
+              <Nav.Link as={Link} to="/owner/create-contract" className="d-flex align-items-center gap-2">
+                <FileEarmarkPlus /> Nuevo Contrato
+              </Nav.Link>
+              
+              
                 <Nav.Link as={Link} to="/owner/reviews">
                     <StarFill /> Opiniones
                 </Nav.Link>
