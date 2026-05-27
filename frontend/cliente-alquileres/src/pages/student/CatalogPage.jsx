@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Form, Button, InputGroup, Badge, Spinner } f
 import { Search, FunnelFill, GeoAltFill, HouseDoorFill, CashStack } from 'react-bootstrap-icons';
 import { Link } from 'react-router-dom';
 import api from '../../api/axiosConfig';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const CatalogPage = () => {
   const [properties, setProperties] = useState([]);
@@ -107,7 +108,7 @@ const CatalogPage = () => {
                   <div style={{ height: '200px', overflow: 'hidden', position: 'relative' }}>
                     {prop.fotos && prop.fotos.length > 0 ? (
                       <img 
-                        src={`http://localhost:3000/${prop.fotos[0].url}`} 
+                        src={getImageUrl(prop.fotos[0].url)}
                         alt={prop.titulo}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />

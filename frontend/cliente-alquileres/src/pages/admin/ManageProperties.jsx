@@ -6,6 +6,7 @@ import {
   Images, Upload
 } from 'react-bootstrap-icons';
 import api from '../../api/axiosConfig';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const ManageProperties = () => {
   // --- ESTADOS PRINCIPALES ---
@@ -268,7 +269,7 @@ const ManageProperties = () => {
                         <div className="d-flex align-items-center">
                           <div style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', marginRight: '15px', backgroundColor: '#eee' }}>
                             {item.fotos && item.fotos.length > 0 ? (
-                              <img src={`http://localhost:3000/${item.fotos[0].url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="img" />
+                              <img src={getImageUrl(item.fotos[0].url)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="img" />
                             ) : <HouseDoorFill size={20} className="m-3 text-muted"/>}
                           </div>
                           <div>
@@ -480,7 +481,7 @@ const ManageProperties = () => {
                 <Carousel>
                   {selectedProp.fotos?.map((foto, idx) => (
                     <Carousel.Item key={idx} style={{ height: '350px' }}>
-                      <img className="d-block w-100 h-100" src={`http://localhost:3000/${foto.url}`} style={{ objectFit: 'contain' }} alt="slide"/>
+                      <img className="d-block w-100 h-100" src={getImageUrl(foto.url)} style={{ objectFit: 'contain' }} alt="slide"/>
                     </Carousel.Item>
                   ))}
                 </Carousel>

@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Button, Carousel, Badge, Modal, Form, Spinne
 import { useParams, useNavigate } from 'react-router-dom';
 import { GeoAltFill, PersonCircle, ChatQuoteFill, ArrowLeft, CheckCircleFill, StarFill, Star } from 'react-bootstrap-icons';
 import api from '../../api/axiosConfig';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const PropertyDetail = () => {
   const { id } = useParams();
@@ -126,7 +127,7 @@ const PropertyDetail = () => {
                   <Carousel.Item key={index} style={{ height: '400px', backgroundColor: '#000' }}>
                     <img
                       className="d-block w-100 h-100"
-                      src={`http://localhost:3000/${foto.url}`}
+                      src={getImageUrl(foto.url)}
                       alt={`Slide ${index}`}
                       style={{ objectFit: 'contain' }}
                     />
