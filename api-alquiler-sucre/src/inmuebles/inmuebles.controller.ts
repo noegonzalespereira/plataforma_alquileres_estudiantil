@@ -1,20 +1,21 @@
-// 1. AGREGAMOS: UseInterceptors, UploadedFiles
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, ParseIntPipe, UseInterceptors, UploadedFiles, UploadedFile, Delete, Req } from '@nestjs/common';
+import {
+  Controller, Get, Post, Body, Patch, Param,
+  UseGuards, ParseIntPipe, UseInterceptors,
+  UploadedFiles, UploadedFile, Delete, Req,
+} from '@nestjs/common';
 import { InmueblesService } from './inmuebles.service';
 import { CreateInmuebleDto } from './dto/create-inmueble.dto';
 import { ActivateInmuebleDto } from './dto/activate-inmueble.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-
-// 2. AGREGAMOS: FilesInterceptor (ya lo tenías, pero asegúrate)
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import { createS3Storage } from './s3.storage';
 
-// 3. AGREGAMOS: diskStorage
-import { diskStorage } from 'multer';
-
-// 4. AGREGAMOS: extname
-import { extname } from 'path';
+/** Extrae la URL pública de S3 del objeto de archivo subido por multer-s3 */
+function getS3Url(file: Express.Multer.File): string {
+  return (file as any).location as string;
+}
 
 @Controller('inmuebles')
 export class InmueblesController {
@@ -40,98 +41,84 @@ export class InmueblesController {
     return this.inmueblesService.findOne(id);
   }
 
-  // 3. SOLO ADMIN: Crear Publicación
+  // 4. SOLO ADMIN / PROPIETARIO: Crear publicación con fotos → S3
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin','propietario') // Solo admin o propietario pueden crear
+  @Roles('admin', 'propietario')
   @Post()
-  @UseInterceptors(FilesInterceptor('fotos', 10, { 
-    storage: diskStorage({
-      destination: './uploads', 
-      filename: (req, file, callback) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        const ext = extname(file.originalname);
-        callback(null, `${uniqueSuffix}${ext}`);
-      },
+  @UseInterceptors(
+    FilesInterceptor('fotos', 10, {
+      storage: createS3Storage('inmuebles'),
     }),
-  }))
+  )
   create(
     @Body() createInmuebleDto: CreateInmuebleDto,
-    @UploadedFiles() files: Array<Express.Multer.File> 
+    @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
-    const imagenesPaths = files ? files.map(file => `uploads/${file.filename}`) : [];
-    
-    // Aquí TypeScript ya no debería quejarse
+    // .location es la URL pública de S3
+    const imagenesPaths = files ? files.map(getS3Url) : [];
     return this.inmueblesService.create(createInmuebleDto, imagenesPaths);
   }
 
-  // 4. SOLO ADMIN: Ver lista completa (incluso vencidos)
+  // 5. SOLO ADMIN: Ver lista completa (incluso vencidos)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin','propietario') // Solo admin o propietario pueden ver todo
-  @Get('admin/todos') 
+  @Roles('admin', 'propietario')
+  @Get('admin/todos')
   findAllAdmin() {
     return this.inmueblesService.findAllAdmin();
   }
 
-  // 5. SOLO ADMIN: Activar / Renovar
- // 6. EDITAR INFORMACIÓN + AGREGAR FOTOS (Solo Admin)
+  // 6. EDITAR INFORMACIÓN + AGREGAR FOTOS (Admin / Propietario) → S3
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin','propietario') // Solo admin o propietario pueden editar
+  @Roles('admin', 'propietario')
   @Patch(':id')
-  @UseInterceptors(FilesInterceptor('fotos', 10, { // Permitimos subir fotos también al editar
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, callback) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        const ext = extname(file.originalname);
-        callback(null, `${uniqueSuffix}${ext}`);
-      },
+  @UseInterceptors(
+    FilesInterceptor('fotos', 10, {
+      storage: createS3Storage('inmuebles'),
     }),
-  }))
+  )
   update(
-    @Param('id', ParseIntPipe) id: number, 
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateInmuebleDto: any,
-    @UploadedFiles() files: Array<Express.Multer.File>
+    @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
-    // Si subieron fotos nuevas, generamos sus rutas
-    const nuevasFotosPaths = files ? files.map(file => `uploads/${file.filename}`) : [];
-    
+    const nuevasFotosPaths = files ? files.map(getS3Url) : [];
     return this.inmueblesService.update(id, updateInmuebleDto, nuevasFotosPaths);
   }
-  // 7. ELIMINAR (Solo Admin)
+
+  // 7. ELIMINAR (Admin / Propietario)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin','propietario') // Solo admin o propietario pueden eliminar
-  @Delete(':id') // Importar Delete de @nestjs/common
+  @Roles('admin', 'propietario')
+  @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.inmueblesService.remove(id);
   }
-  // PROPIETARIO: Subir comprobante y solicitar renovación
+
+  // 8. PROPIETARIO: Subir comprobante de pago → S3
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('propietario')
   @Patch(':id/solicitar-pago')
-  @UseInterceptors(FileInterceptor('comprobante', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (_req, file, callback) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        const ext = extname(file.originalname);
-        callback(null, `comprobante-${uniqueSuffix}${ext}`);
-      },
+  @UseInterceptors(
+    FileInterceptor('comprobante', {
+      storage: createS3Storage('comprobantes'),
     }),
-  }))
+  )
   solicitarPago(
     @Param('id', ParseIntPipe) id: number,
     @Body('fechaVencimiento') fechaVencimiento: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    const comprobantePath = file ? `uploads/${file.filename}` : '';
+    const comprobantePath = file ? getS3Url(file) : '';
     return this.inmueblesService.solicitarPago(id, fechaVencimiento, comprobantePath);
   }
 
-  // ADMIN: Confirmar pago → activa y envía email
+  // 9. ADMIN: Confirmar pago → activa y envía email
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'propietario')
   @Patch(':id/activar')
-  activar(@Param('id', ParseIntPipe) id: number, @Body() dto: ActivateInmuebleDto) {
+  activar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ActivateInmuebleDto,
+  ) {
     return this.inmueblesService.activate(id, dto);
   }
 }
