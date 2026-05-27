@@ -18,9 +18,10 @@ const ManageProperties = () => {
   const [selectedProp, setSelectedProp] = useState(null); 
 
   // --- ESTADOS DE MODALS ---
-  const [showRenewModal, setShowRenewModal] = useState(false); // Para Renovar/Pagar
-  const [showEditModal, setShowEditModal] = useState(false);   // Para Editar
-  const [showViewModal, setShowViewModal] = useState(false);   // Para Ver
+  const [showRenewModal, setShowRenewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showComprobanteModal, setShowComprobanteModal] = useState(false);
 
   // --- FORMULARIOS ---
   const [newDate, setNewDate] = useState(''); // Fecha para renovación
@@ -61,15 +62,28 @@ const ManageProperties = () => {
 
   const handleRenew = async () => {
     try {
-      // Al renovar, activamos la visibilidad y actualizamos la fecha
       await api.patch(`/inmuebles/${selectedProp.id}/activar`, {
-        visible: true, // Al pagar se activa automáticamente
+        visible: true,
         fechaVencimiento: newDate
       });
       setShowRenewModal(false);
       fetchInmuebles();
-      alert("💰 Suscripción renovada exitosamente");
+      alert("Suscripción renovada. Se envió email al propietario.");
     } catch (error) { alert('Error al renovar'); }
+  };
+
+  const handleConfirmarPago = async () => {
+    try {
+      await api.patch(`/inmuebles/${selectedProp.id}/activar`, {
+        visible: true,
+        fechaVencimiento: selectedProp.fechaVencimiento
+          ? new Date(selectedProp.fechaVencimiento).toISOString().split('T')[0]
+          : new Date(Date.now() + 30 * 864e5).toISOString().split('T')[0],
+      });
+      setShowComprobanteModal(false);
+      fetchInmuebles();
+      alert("Pago confirmado. El propietario recibirá un correo.");
+    } catch (error) { alert('Error al confirmar el pago'); }
   };
 
   // --- 2. INTERRUPTOR VISIBILIDAD (Manual) ---
@@ -159,6 +173,8 @@ const ManageProperties = () => {
       data = data.filter(i => isExpired(i.fechaVencimiento));
     } else if (filterTab === 'activos') {
       data = data.filter(i => !isExpired(i.fechaVencimiento) && i.visible);
+    } else if (filterTab === 'pendientes') {
+      data = data.filter(i => i.pendientePago);
     }
 
     // Filtro por Buscador
@@ -194,12 +210,23 @@ const ManageProperties = () => {
             >Activos</Nav.Link>
           </Nav.Item>
           <Nav.Item>
-            <Nav.Link 
-              active={filterTab === 'vencidos'} 
+            <Nav.Link
+              active={filterTab === 'vencidos'}
               onClick={() => setFilterTab('vencidos')}
               className={filterTab === 'vencidos' ? 'bg-danger text-white px-4' : 'text-danger px-4'}
             >
               <ExclamationTriangleFill className="me-2"/> Vencidos
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link
+              active={filterTab === 'pendientes'}
+              onClick={() => setFilterTab('pendientes')}
+              className={filterTab === 'pendientes' ? 'text-white px-4' : 'px-4'}
+              style={filterTab === 'pendientes' ? { backgroundColor: '#f9bb6e', color: '#000' } : { color: '#856404' }}
+            >
+              <CurrencyDollar className="me-2"/>
+              Pendientes ({inmuebles.filter(i => i.pendientePago).length})
             </Nav.Link>
           </Nav.Item>
         </Nav>
@@ -253,7 +280,9 @@ const ManageProperties = () => {
                       
                       {/* ESTADO PAGO */}
                       <td>
-                        {vencido ? (
+                        {item.pendientePago ? (
+                          <Badge bg="warning" text="dark" className="p-2"><CurrencyDollar className="me-1"/> PENDIENTE</Badge>
+                        ) : vencido ? (
                           <Badge bg="danger" className="p-2"><ExclamationTriangleFill className="me-1"/> VENCIDO</Badge>
                         ) : (
                           <Badge bg="success" className="p-2"><CalendarCheck className="me-1"/> VIGENTE</Badge>
@@ -278,12 +307,23 @@ const ManageProperties = () => {
                       {/* ACCIONES */}
                       <td className="text-center">
                         <div className="d-flex gap-2 justify-content-center">
-                          {/* Botón Renovar */}
-                          <Button 
-                            variant={vencido ? "danger" : "outline-success"} 
+                          {/* Botón Comprobante (si pendiente) */}
+                          {item.pendientePago && (
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              onClick={() => { setSelectedProp(item); setShowComprobanteModal(true); }}
+                              title="Ver comprobante y confirmar pago"
+                            >
+                              <CheckCircleFill className="me-1"/> Confirmar
+                            </Button>
+                          )}
+                          {/* Botón Renovar manual */}
+                          <Button
+                            variant={vencido ? "danger" : "outline-success"}
                             size="sm"
                             onClick={() => openRenew(item)}
-                            title="Renovar Suscripción (Cobrar)"
+                            title="Renovar Suscripción"
                           >
                             <CurrencyDollar className="me-1"/> {vencido ? "Pagar" : "Extender"}
                           </Button>
@@ -325,6 +365,53 @@ const ManageProperties = () => {
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowRenewModal(false)}>Cancelar</Button>
           <Button variant="success" onClick={handleRenew}>Confirmar Pago</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* --- MODAL VER COMPROBANTE Y CONFIRMAR --- */}
+      <Modal show={showComprobanteModal} onHide={() => setShowComprobanteModal(false)} centered>
+        <Modal.Header closeButton style={{ backgroundColor: '#f9bb6e' }}>
+          <Modal.Title><CheckCircleFill className="me-2"/> Confirmar Pago</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedProp && (
+            <>
+              <p><strong>Inmueble:</strong> {selectedProp.titulo}</p>
+              <p><strong>Propietario:</strong> {selectedProp.propietario?.nombre} {selectedProp.propietario?.apellido}</p>
+              <p><strong>Publicar hasta:</strong> {selectedProp.fechaVencimiento
+                ? new Date(selectedProp.fechaVencimiento).toLocaleDateString('es-BO', { year: 'numeric', month: 'long', day: 'numeric' })
+                : 'Sin fecha'}</p>
+              <hr/>
+              <p className="fw-bold">Comprobante de pago:</p>
+              {selectedProp.comprobantePago ? (
+                selectedProp.comprobantePago.endsWith('.pdf') ? (
+                  <a
+                    href={`http://localhost:3000/${selectedProp.comprobantePago}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-outline-primary w-100"
+                  >
+                    Ver PDF del comprobante
+                  </a>
+                ) : (
+                  <img
+                    src={`http://localhost:3000/${selectedProp.comprobantePago}`}
+                    alt="comprobante"
+                    className="w-100 rounded border"
+                    style={{ maxHeight: '300px', objectFit: 'contain' }}
+                  />
+                )
+              ) : (
+                <Alert variant="warning">No se subió comprobante.</Alert>
+              )}
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowComprobanteModal(false)}>Cancelar</Button>
+          <Button variant="success" onClick={handleConfirmarPago}>
+            <CheckCircleFill className="me-2"/> Confirmar y Activar
+          </Button>
         </Modal.Footer>
       </Modal>
 

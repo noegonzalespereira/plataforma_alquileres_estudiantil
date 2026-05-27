@@ -1,0 +1,44 @@
+
+services:
+
+  # ─── Base de datos PostgreSQL ─────────────────────────────
+  
+  # ─── API NestJS ───────────────────────────────────────────
+  api:
+    build:
+      context: ./api-alquiler-sucre
+    container_name: alquileres-api
+    restart: unless-stopped
+    env_file:
+      - .env                # carga todas las variables del .env raíz
+    ports:
+      - "3001:3000"
+    volumes:
+      - vol-uploads:/app/uploads   # imágenes de inmuebles y comprobantes
+    networks:
+      - red-alquileres
+
+  # ─── Frontend React (Nginx) ───────────────────────────────
+  frontend:
+    build:
+      context: ./frontend/cliente-alquileres
+      args:
+        VITE_API_URL: http://52.4.135.83:3001  # URL pública de la API
+    container_name: alquileres-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    networks:
+      - red-alquileres
+
+# ─── Volúmenes ────────────────────────────────────────────────
+volumes:
+  vol-uploads:
+    name: vol-uploads        # imágenes subidas por propietarios
+
+# ─── Red interna ──────────────────────────────────────────────
+networks:
+  red-alquileres:
+    name: red-alquileres    # los contenedores se comunican por nombre

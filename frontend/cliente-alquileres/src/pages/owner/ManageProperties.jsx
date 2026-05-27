@@ -72,16 +72,7 @@ const ManageProperties = () => {
     } catch (error) { alert('Error al renovar'); }
   };
 
-  // --- 2. INTERRUPTOR VISIBILIDAD (Manual) ---
-  const toggleVisibility = async (prop) => {
-    try {
-      await api.patch(`/inmuebles/${prop.id}/activar`, {
-        visible: !prop.visible, // Invertimos estado
-        fechaVencimiento: prop.fechaVencimiento // Mantenemos la fecha original
-      });
-      fetchInmuebles();
-    } catch (error) { alert('Error al cambiar visibilidad'); }
-  };
+  
 
   // --- 3. EDITAR DATOS + FOTOS ---
   const openEdit = (prop) => {
@@ -202,6 +193,11 @@ const ManageProperties = () => {
               <ExclamationTriangleFill className="me-2"/> Vencidos
             </Nav.Link>
           </Nav.Item>
+          <Nav.Item>
+                <Nav.Link as={Link} to="/owner/create-property" className="d-flex align-items-center gap-2  backgroundColor: '#f67f54', border: 'none'">
+                    <FileEarmarkPlus /> Crear Inmueble
+                </Nav.Link>
+            </Nav.Item>
         </Nav>
 
         {/* BUSCADOR Y REFRESCAR */}
@@ -209,7 +205,7 @@ const ManageProperties = () => {
           <InputGroup className="shadow-sm">
             <InputGroup.Text className="bg-white"><Search/></InputGroup.Text>
             <Form.Control 
-              placeholder="Buscar propiedad o dueño..." 
+              placeholder="Buscar propiedad " 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -227,7 +223,7 @@ const ManageProperties = () => {
                 <tr>
                   <th className="ps-4">Propiedad</th>
                   <th>Estado del Pago</th>
-                  <th>Visibilidad</th>
+                  
                   <th className="text-center">Acciones</th>
                 </tr>
               </thead>
@@ -263,17 +259,7 @@ const ManageProperties = () => {
                         </div>
                       </td>
 
-                      {/* SWITCH VISIBILIDAD */}
-                      <td>
-                        <Form.Check 
-                          type="switch"
-                          id={`switch-${item.id}`}
-                          label={item.visible ? "Visible" : "Oculto"}
-                          checked={item.visible}
-                          onChange={() => toggleVisibility(item)}
-                          className={item.visible ? "text-success fw-bold" : "text-muted"}
-                        />
-                      </td>
+                      
 
                       {/* ACCIONES */}
                       <td className="text-center">

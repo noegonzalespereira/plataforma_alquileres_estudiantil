@@ -1,0 +1,14 @@
+# Variables de entorno (nunca subir a git)
+.env
+.env.local
+.env.production
+
+# Dependencias
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Uploads (archivos subidos por usuarios)
+uploads/

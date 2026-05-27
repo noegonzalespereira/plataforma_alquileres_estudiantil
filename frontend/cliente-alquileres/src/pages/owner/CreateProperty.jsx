@@ -96,7 +96,7 @@ const CreateProperty = () => {
       });
 
       alert('¡Inmueble registrado exitosamente!');
-      navigate('/admin/properties'); // Volver a la lista para validarlo
+      navigate('/owner/properties'); // Volver a la lista para validarlo
     } catch (error) {
       console.error(error);
       alert('Error al crear el inmueble. Verifica los datos.');

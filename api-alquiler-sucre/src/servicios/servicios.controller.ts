@@ -12,7 +12,7 @@ export class ServiciosController {
 
   // 1. CREAR: Solo Admin
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @Roles('admin','propietario')
   @Post()
   create(@Body() createServicioDto: CreateServicioDto) {
     return this.serviciosService.create(createServicioDto);
@@ -31,7 +31,7 @@ export class ServiciosController {
 
   // 3. EDITAR: Solo Admin
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @Roles('admin','propietario')
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() updateServicioDto: UpdateServicioDto) {
     return this.serviciosService.update(id, updateServicioDto);
@@ -39,7 +39,7 @@ export class ServiciosController {
 
   // 4. BORRAR: Solo Admin
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @Roles('admin','propietario')
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.serviciosService.remove(id);

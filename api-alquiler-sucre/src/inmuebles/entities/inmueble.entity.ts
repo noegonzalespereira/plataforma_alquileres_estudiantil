@@ -36,6 +36,12 @@ export class Inmueble {
   @Column({ default: false })
   visible: boolean;
 
+  @Column({ default: false, name: 'pendiente_pago' })
+  pendientePago!: boolean;
+
+  @Column({ nullable: true, name: 'comprobante_pago' })
+  comprobantePago!: string;
+
   @CreateDateColumn({ name: 'fecha_publicacion' })
   fechaPublicacion: Date;
 
