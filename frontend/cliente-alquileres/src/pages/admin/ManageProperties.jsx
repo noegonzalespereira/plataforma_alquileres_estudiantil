@@ -387,7 +387,7 @@ const ManageProperties = () => {
               {selectedProp.comprobantePago ? (
                 selectedProp.comprobantePago.endsWith('.pdf') ? (
                   <a
-                    href={`http://localhost:3000/${selectedProp.comprobantePago}`}
+                    href={getImageUrl(selectedProp.comprobantePago)}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-outline-primary w-100"
@@ -396,7 +396,7 @@ const ManageProperties = () => {
                   </a>
                 ) : (
                   <img
-                    src={`http://localhost:3000/${selectedProp.comprobantePago}`}
+                    src={getImageUrl(selectedProp.comprobantePago)}
                     alt="comprobante"
                     className="w-100 rounded border"
                     style={{ maxHeight: '300px', objectFit: 'contain' }}
