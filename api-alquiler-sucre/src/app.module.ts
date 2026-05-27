@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config'; 
 import { TypeOrmModule } from '@nestjs/typeorm';
-
-// Tus módulos...
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { AuthModule } from './auth/auth.module';
 import { InmueblesModule } from './inmuebles/inmuebles.module';
@@ -11,6 +9,8 @@ import { MensajeModule } from './mensaje/mensaje.module';
 import { ContratoModule } from './contrato/contrato.module';
 import { ResenasModule } from './resenas/resenas.module';
 import { ReportesModule } from './reportes/reportes.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -26,10 +26,12 @@ import { ReportesModule } from './reportes/reportes.module';
       database: process.env.DB_DATABASE || 'alquileres_sucre_db',
       autoLoadEntities: true,
       synchronize: true,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
     }),
-    UsuariosModule, AuthModule, InmueblesModule, ServiciosModule, MensajeModule, ContratoModule, ResenasModule, ReportesModule
+    UsuariosModule, AuthModule, InmueblesModule, ServiciosModule,
+    MensajeModule, ContratoModule, ResenasModule, ReportesModule
   ],
-  controllers: [],
-  providers: [],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
