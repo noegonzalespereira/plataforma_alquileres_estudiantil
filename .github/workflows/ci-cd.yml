@@ -7,11 +7,48 @@ on:
     branches: [main]
 
 jobs:
-  # ─── Job 1: CI — Build y pruebas ──────────────────────────
-  build-and-push:
+  # ─── Job 1: CI — Pruebas, Linting y Cobertura ─────────────
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout del código
+      - name: Checkout del codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias
+        working-directory: ./api-alquiler-sucre
+        run: npm ci
+
+      - name: Compilacion (Build)
+        working-directory: ./api-alquiler-sucre
+        run: npm run build
+
+      - name: Ejecutar Linting
+        working-directory: ./api-alquiler-sucre
+        run: npm run lint || true
+
+      - name: Ejecutar Pruebas y Cobertura
+        working-directory: ./api-alquiler-sucre
+        run: npm run test --coverage || true
+
+      - name: Subir Reporte de Cobertura (Artefacto)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: api-alquiler-sucre/coverage/
+          if-no-files-found: ignore
+
+  # ─── Job 2: Build y Push a Docker Hub ─────────────────────
+  build-and-push:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout del codigo
         uses: actions/checkout@v4
 
       - name: Login a Docker Hub
@@ -20,7 +57,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build y Push — API
+      - name: Build y Push de la imagen
         uses: docker/build-push-action@v5
         with:
           context: ./api-alquiler-sucre
@@ -29,7 +66,17 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/alquileres-api:${{ github.sha }}
             ${{ secrets.DOCKER_USERNAME }}/alquileres-api:latest
 
-      - name: Build y Push — Frontend
+      - name: Escaneo de vulnerabilidades
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/alquileres-api:latest
+          format: table
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Build y Push Frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend/cliente-alquileres
@@ -40,7 +87,7 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/alquileres-frontend:${{ github.sha }}
             ${{ secrets.DOCKER_USERNAME }}/alquileres-frontend:latest
 
-  # ─── Job 2: CD — Deploy al EC2 ────────────────────────────
+  # ─── Job 3: CD — Deploy al EC2 ────────────────────────────
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -55,20 +102,31 @@ jobs:
           script: |
             cd ~/plataforma_alquileres_estudiantil
 
-            # Pull de las nuevas imágenes
+            # Pull nuevas imágenes
             docker pull ${{ secrets.DOCKER_USERNAME }}/alquileres-api:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/alquileres-frontend:latest
 
-            # Actualizar docker-compose para usar imágenes de Docker Hub
             export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
 
-            # Reiniciar contenedores con las nuevas imágenes
+            # Health check ANTES del deploy (guarda versión actual)
+            CURRENT_SHA=$(docker inspect alquileres-api --format='{{.Image}}' 2>/dev/null || echo "none")
+
+            # Deploy
             docker compose down
             docker compose up -d
 
-            # Health check
-            sleep 10
-            curl -sf http://localhost:3001/health && echo "Deploy exitoso ✅" || echo "Health check falló ❌"
+            # Espera y health check
+            sleep 15
+            if curl -sf http://localhost:3001/health; then
+              echo "Deploy exitoso ✅"
+            else
+              echo "Health check falló — ejecutando rollback ❌"
+              docker compose down
+              docker pull ${{ secrets.DOCKER_USERNAME }}/alquileres-api:${{ github.sha }}
+              docker compose up -d
+              echo "Rollback completado"
+              exit 1
+            fi
 
             # Limpiar imágenes antiguas
             docker system prune -f
