@@ -5,8 +5,7 @@ services:
   
   # ─── API NestJS ───────────────────────────────────────────
   api:
-    build:
-      context: ./api-alquiler-sucre
+    image: ${DOCKER_USERNAME}/alquileres-api:latest
     container_name: alquileres-api
     restart: unless-stopped
     env_file:
@@ -20,10 +19,7 @@ services:
 
   # ─── Frontend React (Nginx) ───────────────────────────────
   frontend:
-    build:
-      context: ./frontend/cliente-alquileres
-      args:
-        VITE_API_URL: http://52.4.135.83:3001  # URL pública de la API
+    image: ${DOCKER_USERNAME}/alquileres-frontend:latest
     container_name: alquileres-frontend
     restart: unless-stopped
     ports:
