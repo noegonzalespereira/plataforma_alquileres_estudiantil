@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Publicación aprobada</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#402149;padding:28px 32px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;">
+                Sistema Alquileres Sucre
+              </h1>
+              <p style="color:#d4b8e0;margin:6px 0 0;font-size:13px;">Plataforma de alquileres estudiantiles</p>
+            </td>
+          </tr>
+
+          <!-- Success badge -->
+          <tr>
+            <td style="background:#f0fdf4;padding:18px 32px;border-bottom:1px solid #bbf7d0;">
+              <p style="margin:0;color:#166534;font-size:16px;font-weight:bold;">
+                ✅ ¡Tu publicación fue aprobada y está visible!
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <p style="color:#333;font-size:15px;margin:0 0 16px;">
+                Hola <strong>{{nombre}} {{apellido}}</strong>,
+              </p>
+              <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 24px;">
+                Tu pago fue verificado correctamente. Tu inmueble ya está
+                <strong style="color:#166534;">publicado y visible</strong> para todos los estudiantes
+                de la plataforma.
+              </p>
+
+              <!-- Details card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf5ff;border:1px solid #d8b4fe;border-radius:6px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px;border-left:4px solid #f67f54;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding:4px 0;">
+                          <span style="color:#402149;font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;">Inmueble</span><br/>
+                          <span style="color:#333;font-size:15px;font-weight:bold;">{{tituloInmueble}}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:10px 0 4px;">
+                          <span style="color:#402149;font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;">Publicado hasta</span><br/>
+                          <span style="color:#333;font-size:15px;">{{fechaVencimiento}}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 24px;">
+                Recuerda renovar tu publicación antes de la fecha de vencimiento para que
+                no pierda visibilidad. Puedes hacerlo desde el panel de propietario subiendo
+                un nuevo comprobante de pago.
+              </p>
+
+              <p style="color:#777;font-size:13px;margin:0;">
+                Si tienes alguna consulta, responde este correo o contáctanos directamente.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#402149;padding:16px 32px;text-align:center;">
+              <p style="color:#d4b8e0;margin:0;font-size:12px;">
+                Sistema Alquileres Estudiantil — Sucre, Bolivia
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

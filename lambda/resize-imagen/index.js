@@ -15,7 +15,7 @@ exports.handler = async (event) => {
       continue;
     }
 
-    const thumbnailKey = key.replace('originales/', 'thumbnail/');
+    const thumbnailKey = key.replace('originales/', 'thumbnails/');
 
     console.log(`Procesando: ${key} → ${thumbnailKey}`);
 

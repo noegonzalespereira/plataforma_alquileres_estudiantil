@@ -7,7 +7,7 @@ import { CreateInmuebleDto } from './dto/create-inmueble.dto';
 import { ActivateInmuebleDto } from './dto/activate-inmueble.dto';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Servicio } from '../servicios/entities/servicio.entity';
-import * as nodemailer from 'nodemailer';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class InmueblesService {
@@ -15,37 +15,16 @@ export class InmueblesService {
     @InjectRepository(Inmueble)
     private readonly inmuebleRepo: Repository<Inmueble>,
 
-    @InjectRepository(FotoInmueble)
-    private readonly fotoRepo: Repository<FotoInmueble>,
-
     @InjectRepository(Usuario)
     private readonly usuarioRepo: Repository<Usuario>,
 
     @InjectRepository(Servicio)
     private readonly servicioRepo: Repository<Servicio>,
+
+    private readonly mailService: MailService,
   ) {}
 
-  private async enviarEmail(destinatario: string, asunto: string, html: string) {
-    try {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.MAIL_USER,
-          pass: process.env.MAIL_PASS,
-        },
-      });
-      await transporter.sendMail({
-        from: process.env.MAIL_FROM,
-        to: destinatario,
-        subject: asunto,
-        html,
-      });
-    } catch (err) {
-      console.error('Error enviando email:', err);
-    }
-  }
-
-  // 1. CREAR
+  // 1. CREAR — notifica al propietario que su publicación fue recibida
   async create(dto: CreateInmuebleDto, fotosPaths: string[]) {
     const propietario = await this.usuarioRepo.findOneBy({ id: dto.idPropietario });
     if (!propietario) throw new NotFoundException('Propietario no encontrado');
@@ -72,7 +51,17 @@ export class InmueblesService {
       visible: false,
     });
 
-    return await this.inmuebleRepo.save(inmueble);
+    const resultado = await this.inmuebleRepo.save(inmueble);
+
+    if (propietario.email) {
+      await this.mailService.notificarPublicacionCreada(propietario.email, {
+        nombre: propietario.nombre,
+        apellido: propietario.apellido,
+        tituloInmueble: inmueble.titulo,
+      });
+    }
+
+    return resultado;
   }
 
   // 2. LISTAR PARA ESTUDIANTES (Solo visibles y no vencidos)
@@ -102,7 +91,7 @@ export class InmueblesService {
     });
   }
 
-  // 5. PROPIETARIO: Solicitar renovación con comprobante de pago
+  // 5. PROPIETARIO: Solicitar renovación con comprobante — notifica a todos los admins
   async solicitarPago(id: number, fechaVencimiento: string, comprobantePath: string) {
     const inmueble = await this.inmuebleRepo.findOne({
       where: { id },
@@ -115,10 +104,27 @@ export class InmueblesService {
     inmueble.pendientePago = true;
     inmueble.visible = false;
 
-    return await this.inmuebleRepo.save(inmueble);
+    const resultado = await this.inmuebleRepo.save(inmueble);
+
+    const admins = await this.usuarioRepo.findBy({ rol: 'admin' });
+    const nombrePropietario = inmueble.propietario
+      ? `${inmueble.propietario.nombre} ${inmueble.propietario.apellido}`
+      : 'Propietario';
+
+    for (const admin of admins) {
+      if (admin.email) {
+        await this.mailService.notificarPagoPendiente(admin.email, {
+          nombrePropietario,
+          tituloInmueble: inmueble.titulo,
+          idInmueble: inmueble.id,
+        });
+      }
+    }
+
+    return resultado;
   }
 
-  // 6. ADMIN: Activar / Confirmar pago → envía email al propietario
+  // 6. ADMIN: Activar / Confirmar pago — notifica al propietario
   async activate(id: number, dto: ActivateInmuebleDto) {
     const inmueble = await this.inmuebleRepo.findOne({
       where: { id },
@@ -132,35 +138,16 @@ export class InmueblesService {
 
     const resultado = await this.inmuebleRepo.save(inmueble);
 
-    // Enviar email de confirmación al propietario si se activó
     if (dto.visible && inmueble.propietario?.email) {
-      const vencimiento = new Date(dto.fechaVencimiento).toLocaleDateString('es-BO', {
+      const fechaVencimientoFormateada = new Date(dto.fechaVencimiento).toLocaleDateString('es-BO', {
         year: 'numeric', month: 'long', day: 'numeric',
       });
-      await this.enviarEmail(
-        inmueble.propietario.email,
-        '✅ Tu publicación fue aprobada - Sistema Alquileres Sucre',
-        `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #402149; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">Sistema Alquileres Sucre</h1>
-          </div>
-          <div style="padding: 30px; background: #f9f9f9;">
-            <h2 style="color: #402149;">¡Publicación Aprobada!</h2>
-            <p>Hola <strong>${inmueble.propietario.nombre} ${inmueble.propietario.apellido}</strong>,</p>
-            <p>Tu pago fue verificado y tu inmueble ya está publicado y visible para los estudiantes.</p>
-            <div style="background: white; border-left: 4px solid #f67f54; padding: 15px; margin: 20px 0;">
-              <p><strong>Inmueble:</strong> ${inmueble.titulo}</p>
-              <p><strong>Publicado hasta:</strong> ${vencimiento}</p>
-            </div>
-            <p style="color: #666;">Si tienes alguna consulta, contáctanos respondiendo este correo.</p>
-          </div>
-          <div style="background: #402149; padding: 10px; text-align: center;">
-            <p style="color: #ccc; margin: 0; font-size: 12px;">Sistema Alquileres Estudiantil - Sucre, Bolivia</p>
-          </div>
-        </div>
-        `
-      );
+      await this.mailService.notificarPublicacionAprobada(inmueble.propietario.email, {
+        nombre: inmueble.propietario.nombre,
+        apellido: inmueble.propietario.apellido,
+        tituloInmueble: inmueble.titulo,
+        fechaVencimiento: fechaVencimientoFormateada,
+      });
     }
 
     return resultado;

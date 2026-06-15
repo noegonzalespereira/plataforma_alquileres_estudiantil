@@ -60,7 +60,7 @@ export class InmueblesController {
         const originalKey = `originales/inmuebles/${nombre}`;
         await this.s3Service.uploadFile(file, originalKey);
         // Lambda generará thumbnail/ de forma asíncrona; guardamos esa URL directamente
-        imagenesPaths.push(`${cdn}/thumbnail/inmuebles/${nombre}`);
+        imagenesPaths.push(`${cdn}/thumbnails/inmuebles/${nombre}`);
       }
     }
     return this.inmueblesService.create(createInmuebleDto, imagenesPaths);
@@ -93,7 +93,7 @@ export class InmueblesController {
         const nombre = `${Date.now()}-${file.originalname}`;
         const originalKey = `originales/inmuebles/${nombre}`;
         await this.s3Service.uploadFile(file, originalKey);
-        nuevasFotosPaths.push(`${cdn}/thumbnail/inmuebles/${nombre}`);
+        nuevasFotosPaths.push(`${cdn}/thumbnails/inmuebles/${nombre}`);
       }
     }
     return this.inmueblesService.update(id, updateInmuebleDto, nuevasFotosPaths);

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config'; 
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { AuthModule } from './auth/auth.module';
@@ -9,6 +9,7 @@ import { MensajeModule } from './mensaje/mensaje.module';
 import { ContratoModule } from './contrato/contrato.module';
 import { ResenasModule } from './resenas/resenas.module';
 import { ReportesModule } from './reportes/reportes.module';
+import { MailModule } from './mail/mail.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -28,6 +29,7 @@ import { AppService } from './app.service';
       synchronize: true,
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
     }),
+    MailModule,
     UsuariosModule, AuthModule, InmueblesModule, ServiciosModule,
     MensajeModule, ContratoModule, ResenasModule, ReportesModule
   ],
