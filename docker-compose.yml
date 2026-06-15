@@ -23,8 +23,6 @@ services:
     restart: unless-stopped
     expose:
       - "80"   # Nginx proxy lo consumirá internamente por este puerto.
-    environment:
-      - VITE_API_URL=https://alquileres-sucre.duckdns.org/api
     depends_on:
       - api
     networks:

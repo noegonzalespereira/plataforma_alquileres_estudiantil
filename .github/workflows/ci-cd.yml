@@ -82,7 +82,7 @@ jobs:
           context: ./frontend/cliente-alquileres
           push: true
           build-args: |
-            VITE_API_URL=http://52.4.135.83:3001
+            VITE_API_URL=https://alquileres-sucre.duckdns.org/api
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/alquileres-frontend:${{ github.sha }}
             ${{ secrets.DOCKER_USERNAME }}/alquileres-frontend:latest
@@ -103,9 +103,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Subir nginx.conf a S3
+      - name: Subir archivos de configuracion a S3
         run: |
           aws s3 cp nginx/nginx.conf s3://alquileres-imagenes-10380909/deploy/nginx.conf
+          aws s3 cp docker-compose.yml s3://alquileres-imagenes-10380909/deploy/docker-compose.yml
 
       - name: Deploy en EC2 via SSM
         run: |
@@ -116,9 +117,10 @@ jobs:
               "cd ~/plataforma_alquileres_estudiantil",
               "mkdir -p nginx",
               "aws s3 cp s3://alquileres-imagenes-10380909/deploy/nginx.conf nginx/nginx.conf",
-              "docker pull ${{ secrets.DOCKER_USERNAME }}/alquileres-api:latest",
-              "docker pull ${{ secrets.DOCKER_USERNAME }}/alquileres-frontend:latest",
+              "aws s3 cp s3://alquileres-imagenes-10380909/deploy/docker-compose.yml docker-compose.yml",
               "export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}",
+              "docker pull ${DOCKER_USERNAME}/alquileres-api:latest",
+              "docker pull ${DOCKER_USERNAME}/alquileres-frontend:latest",
               "docker compose down",
               "docker compose up -d",
               "sleep 30",
