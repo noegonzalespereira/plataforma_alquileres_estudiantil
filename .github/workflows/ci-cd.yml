@@ -93,12 +93,19 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
+      - name: Checkout del codigo
+        uses: actions/checkout@v4
+
       - name: Configurar credenciales AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Subir nginx.conf a S3
+        run: |
+          aws s3 cp nginx/nginx.conf s3://alquileres-imagenes-10380909/deploy/nginx.conf
 
       - name: Deploy en EC2 via SSM
         run: |
@@ -107,6 +114,8 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
               "cd ~/plataforma_alquileres_estudiantil",
+              "mkdir -p nginx",
+              "aws s3 cp s3://alquileres-imagenes-10380909/deploy/nginx.conf nginx/nginx.conf",
               "docker pull ${{ secrets.DOCKER_USERNAME }}/alquileres-api:latest",
               "docker pull ${{ secrets.DOCKER_USERNAME }}/alquileres-frontend:latest",
               "export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}",
