@@ -44,7 +44,7 @@ export class MailService {
         </div>`,
       });
     } catch (err) {
-      console.error('Error enviando email publicacion-creada:', err);
+      console.error('Error SES publicacion-creada:', (err as Error).message);
     }
   }
 
@@ -93,7 +93,7 @@ export class MailService {
         </div>`,
       });
     } catch (err) {
-      console.error('Error enviando email pago-pendiente-admin:', err);
+      console.error('Error SES pago-pendiente-admin:', (err as Error).message);
     }
   }
 
@@ -136,7 +136,7 @@ export class MailService {
         </div>`,
       });
     } catch (err) {
-      console.error('Error enviando email publicacion-aprobada:', err);
+      console.error('Error SES publicacion-aprobada:', (err as Error).message);
     }
   }
 }
