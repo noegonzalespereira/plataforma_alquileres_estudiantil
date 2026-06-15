@@ -96,12 +96,15 @@ jobs:
       - name: Checkout del codigo
         uses: actions/checkout@v4
 
-      - name: Configurar credenciales AWS
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Copiar archivos de configuracion a EC2 via SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "nginx/nginx.conf,docker-compose.yml"
+          target: "~/plataforma_alquileres_estudiantil"
+          strip_components: 0
 
       - name: Deploy en EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -112,11 +115,7 @@ jobs:
           script: |
             set -e
             cd ~/plataforma_alquileres_estudiantil
-
-            # Actualizar configuracion desde S3
             mkdir -p nginx
-            aws s3 cp s3://alquileres-imagenes-10380909/deploy/nginx.conf nginx/nginx.conf
-            aws s3 cp s3://alquileres-imagenes-10380909/deploy/docker-compose.yml docker-compose.yml
 
             # Descargar imagenes nuevas y reiniciar
             export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
@@ -125,7 +124,6 @@ jobs:
             docker compose down
             docker compose up -d
 
-            # Verificar que la API responde
             sleep 20
             docker ps
             echo "Deploy exitoso ✅"
