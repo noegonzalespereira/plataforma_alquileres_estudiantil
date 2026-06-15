@@ -1,0 +1,10 @@
+{
+  "name": "resize-imagen",
+  "version": "1.0.0",
+  "description": "Lambda para redimensionar imágenes de inmuebles subidas a S3",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "sharp": "^0.33.4"
+  }
+}

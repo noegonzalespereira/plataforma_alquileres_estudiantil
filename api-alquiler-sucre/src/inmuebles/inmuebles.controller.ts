@@ -54,10 +54,13 @@ export class InmueblesController {
     // Subir cada foto a S3 y obtener la URL de CloudFront
     const imagenesPaths: string[] = [];
     if (files && files.length > 0) {
+      const cdn = process.env.AWS_S3_CDN;
       for (const file of files) {
-        const key = `inmuebles/${Date.now()}-${file.originalname}`;
-        const { url } = await this.s3Service.uploadFile(file, key);
-        imagenesPaths.push(url);
+        const nombre = `${Date.now()}-${file.originalname}`;
+        const originalKey = `originales/inmuebles/${nombre}`;
+        await this.s3Service.uploadFile(file, originalKey);
+        // Lambda generará thumbnail/ de forma asíncrona; guardamos esa URL directamente
+        imagenesPaths.push(`${cdn}/thumbnail/inmuebles/${nombre}`);
       }
     }
     return this.inmueblesService.create(createInmuebleDto, imagenesPaths);
@@ -85,10 +88,12 @@ export class InmueblesController {
   ) {
     const nuevasFotosPaths: string[] = [];
     if (files && files.length > 0) {
+      const cdn = process.env.AWS_S3_CDN;
       for (const file of files) {
-        const key = `inmuebles/${Date.now()}-${file.originalname}`;
-        const { url } = await this.s3Service.uploadFile(file, key);
-        nuevasFotosPaths.push(url);
+        const nombre = `${Date.now()}-${file.originalname}`;
+        const originalKey = `originales/inmuebles/${nombre}`;
+        await this.s3Service.uploadFile(file, originalKey);
+        nuevasFotosPaths.push(`${cdn}/thumbnail/inmuebles/${nombre}`);
       }
     }
     return this.inmueblesService.update(id, updateInmuebleDto, nuevasFotosPaths);
