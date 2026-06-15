@@ -1,8 +1,6 @@
 import { MailerModule } from '@nestjs-modules/mailer';
-import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { Global, Module } from '@nestjs/common';
 import { MailService } from './mail.service';
-import { join } from 'path';
 
 @Global()
 @Module({
@@ -20,11 +18,6 @@ import { join } from 'path';
         },
         defaults: {
           from: `"Sistema Alquileres Sucre" <${process.env.MAIL_FROM}>`,
-        },
-        template: {
-          dir: join(__dirname, 'templates'),
-          adapter: new HandlebarsAdapter(),
-          options: { strict: true },
         },
       }),
     }),
