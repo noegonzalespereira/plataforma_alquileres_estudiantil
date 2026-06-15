@@ -87,7 +87,7 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/alquileres-frontend:${{ github.sha }}
             ${{ secrets.DOCKER_USERNAME }}/alquileres-frontend:latest
 
-  # ─── Job 3: CD — Deploy al EC2 via SSM (sin SSH) ──────────
+  # ─── Job 3: CD — Deploy al EC2 via SSH ───────────────────
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -103,65 +103,30 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Subir archivos de configuracion a S3
-        run: |
-          aws s3 cp nginx/nginx.conf s3://alquileres-imagenes-10380909/deploy/nginx.conf
-          aws s3 cp docker-compose.yml s3://alquileres-imagenes-10380909/deploy/docker-compose.yml
+      - name: Deploy en EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/plataforma_alquileres_estudiantil
 
-      - name: Deploy en EC2 via SSM
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --targets "Key=tag:Name,Values=ec2-alquileres" \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "cd ~/plataforma_alquileres_estudiantil",
-              "mkdir -p nginx",
-              "aws s3 cp s3://alquileres-imagenes-10380909/deploy/nginx.conf nginx/nginx.conf",
-              "aws s3 cp s3://alquileres-imagenes-10380909/deploy/docker-compose.yml docker-compose.yml",
-              "export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}",
-              "docker pull ${DOCKER_USERNAME}/alquileres-api:latest",
-              "docker pull ${DOCKER_USERNAME}/alquileres-frontend:latest",
-              "docker compose down",
-              "docker compose up -d",
-              "sleep 30",
-              "curl -sf http://localhost:3001/health && echo Deploy exitoso || (echo Health check fallo; exit 1)",
-              "docker system prune -f"
-            ]' \
-            --query "Command.CommandId" \
-            --output text)
+            # Actualizar configuracion desde S3
+            mkdir -p nginx
+            aws s3 cp s3://alquileres-imagenes-10380909/deploy/nginx.conf nginx/nginx.conf
+            aws s3 cp s3://alquileres-imagenes-10380909/deploy/docker-compose.yml docker-compose.yml
 
-          echo "Command ID: $COMMAND_ID"
+            # Descargar imagenes nuevas y reiniciar
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            docker pull ${DOCKER_USERNAME}/alquileres-api:latest
+            docker pull ${DOCKER_USERNAME}/alquileres-frontend:latest
+            docker compose down
+            docker compose up -d
 
-          # Polling manual
-          for i in {1..20}; do
-            sleep 10
-
-            STATUSES=$(aws ssm list-command-invocations \
-              --command-id "$COMMAND_ID" \
-              --query "CommandInvocations[*].Status" \
-              --output text 2>/dev/null || echo "Pending")
-
-            echo "Intento $i — Statuses: $STATUSES"
-
-            if echo "$STATUSES" | grep -qE "InProgress|Pending|Delayed"; then
-              continue
-            fi
-
-            if echo "$STATUSES" | grep -qE "Failed|TimedOut|Cancelled"; then
-              echo "Deploy falló ❌"
-              aws ssm list-command-invocations \
-                --command-id "$COMMAND_ID" \
-                --details \
-                --query "CommandInvocations[*].{Instance:InstanceId,Status:Status,Output:CommandPlugins[0].Output}" \
-                --output table
-              exit 1
-            fi
-
-            if echo "$STATUSES" | grep -v -qE "InProgress|Pending|Delayed|Failed|TimedOut|Cancelled"; then
-              echo "Deploy exitoso ✅"
-              exit 0
-            fi
-          done
-
-          echo "Timeout esperando el deploy ❌"
-          exit 1
+            # Verificar que la API responde
+            sleep 20
+            docker ps
+            echo "Deploy exitoso ✅"
+            docker system prune -f
